@@ -45,18 +45,7 @@ ninja.data = [{
       section: "Posts",
       handler: () => {
         
-          window.location.href = "/sample-posts/2025/03/28/CSP.html";
-        
-      },
-    },{id: "post-a-post-with-plotly-js",
-      
-        title: "a post with plotly.js",
-      
-      description: "this is what included plotly.js code could look like",
-      section: "Posts",
-      handler: () => {
-        
-          window.location.href = "/sample-posts/2025/03/26/plotly.html";
+          window.location.href = "/blog/2025/CSP/";
         
       },
     },{id: "news-new-publication-announcement-innovative-mri-data-undersampling-research-link",
