@@ -9,7 +9,14 @@ ninja.data = [{
     handler: () => {
       window.location.href = "/";
     },
-  },{id: "nav-publications",
+  },{id: "nav-blog",
+          title: "blog",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/blog/";
+          },
+        },{id: "nav-publications",
           title: "publications",
           description: "",
           section: "Navigation",
@@ -30,7 +37,29 @@ ninja.data = [{
           handler: () => {
             window.location.href = "/cv/";
           },
-        },{id: "news-new-publication-announcement-innovative-mri-data-undersampling-research-link",
+        },{id: "post-motor-imagery-bci-application-exploring-common-spatial-pattern-csp-mathematical-understanding",
+      
+        title: "Motor Imagery BCI Application -- Exploring Common Spatial Pattern (CSP) Mathematical Understanding",
+      
+      description: "an example of a blog post with some math",
+      section: "Posts",
+      handler: () => {
+        
+          window.location.href = "/sample-posts/2025/03/28/CSP.html";
+        
+      },
+    },{id: "post-a-post-with-plotly-js",
+      
+        title: "a post with plotly.js",
+      
+      description: "this is what included plotly.js code could look like",
+      section: "Posts",
+      handler: () => {
+        
+          window.location.href = "/sample-posts/2025/03/26/plotly.html";
+        
+      },
+    },{id: "news-new-publication-announcement-innovative-mri-data-undersampling-research-link",
           title: 'New Publication Announcement: Innovative MRI Data Undersampling Research: link',
           description: "",
           section: "News",},{id: "news-new-publication-announcement-scan-adaptive-mri-undersampling-research-for-link",
