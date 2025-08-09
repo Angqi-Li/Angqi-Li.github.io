@@ -1,0 +1,16 @@
+{% if page.translation_id %}
+  {% assign translations = site.posts | where: "translation_id", page.translation_id %}
+  {% if translations.size > 1 %}
+    <div class="language-switcher" style="text-align: left; margin-bottom: 20px;">
+      {% for post in translations %}
+        {% if post.lang != page.lang %}
+          {% if post.lang == 'zh-CN' %}
+            <a href="{{ post.url | relative_url }}"><i class="fa-solid fa-language fa-lg"></i> 中文版本</a>
+          {% else %}
+            <a href="{{ post.url | relative_url }}"><i class="fa-solid fa-language fa-lg"></i> English Version</a>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endif %} 
