@@ -37,11 +37,33 @@ ninja.data = [{
           handler: () => {
             window.location.href = "/cv/";
           },
-        },{id: "post-motor-imagery-bci-application-exploring-common-spatial-pattern-csp-mathematical-understanding",
+        },{id: "post-cluster-based-permutation-test-中文版",
+      
+        title: "Cluster-Based Permutation Test (中文版)",
+      
+      description: "Understand a statistical test",
+      section: "Posts",
+      handler: () => {
+        
+          window.location.href = "/blog/2025/permutation-zh/";
+        
+      },
+    },{id: "post-cluster-based-permutation-test",
+      
+        title: "Cluster-Based Permutation Test",
+      
+      description: "Understand a statistical test",
+      section: "Posts",
+      handler: () => {
+        
+          window.location.href = "/blog/2025/Permutation/";
+        
+      },
+    },{id: "post-motor-imagery-bci-application-exploring-common-spatial-pattern-csp-mathematical-understanding",
       
         title: "Motor Imagery BCI Application -- Exploring Common Spatial Pattern (CSP) Mathematical Understanding",
       
-      description: "an example of a blog post with some math",
+      description: "Foundation of ML in BCI Application",
       section: "Posts",
       handler: () => {
         
