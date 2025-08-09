@@ -2,7 +2,7 @@
 layout: about
 title: about
 permalink: /
-subtitle:  <a href='#'>liangqi1@msu.edu | 517-580-1321 | 431 Glenmoor Rd, East Lansing, MI 48823</a>
+subtitle: <a href='#'>liangqi1@msu.edu | 517-580-1321 | 431 Glenmoor Rd, East Lansing, MI 48823</a>
 #Affiliations.
 
 profile:

@@ -1,5 +1,5 @@
 {% if page.translation_id %}
-  {% assign translations = site.posts | where: "translation_id", page.translation_id %}
+  {% assign translations = site.posts | where: 'translation_id', page.translation_id %}
   {% if translations.size > 1 %}
     <div class="language-switcher" style="text-align: left; margin-bottom: 20px;">
       {% for post in translations %}
@@ -13,4 +13,4 @@
       {% endfor %}
     </div>
   {% endif %}
-{% endif %} 
+{% endif %}

@@ -23,7 +23,7 @@
       "studyType": " PhD",
       "startDate": "2023-01-01",
       "endDate": "Pres.",
-      "courses": ["Computational neuroscience","Image processing"]
+      "courses": ["Computational neuroscience", "Image processing"]
     },
     {
       "institution": "Michigan State University, Michigan, US",
@@ -41,18 +41,25 @@
       "position": "Research Assistant",
       "startDate": "2023-01",
       "endDate": "Pres.",
-      "highlights": ["Applied machine learning and deep learning techniques to analyze neural signals and medical images, improving data-driven insights in neuroscience research.","Utilized supervised and unsupervised learning methods (e.g., CNNs, RNNs, transformers, and clustering algorithms) to uncover patterns in brain activity and medical imaging","Collaborated with neuroscientists, psychologists, and engineers to develop interdisciplinary solutions for brain signal decoding."]
+      "highlights": [
+        "Applied machine learning and deep learning techniques to analyze neural signals and medical images, improving data-driven insights in neuroscience research.",
+        "Utilized supervised and unsupervised learning methods (e.g., CNNs, RNNs, transformers, and clustering algorithms) to uncover patterns in brain activity and medical imaging",
+        "Collaborated with neuroscientists, psychologists, and engineers to develop interdisciplinary solutions for brain signal decoding."
+      ]
     },
     {
       "name": "Shanghai Jiaotong University, Shanghai, China ",
       "position": "Laboratory Assistant",
       "startDate": "2021-04",
       "endDate": "2021-08",
-      "highlights": ["Assisted researchers in analyzing data for final project reports, debugging prototypes, and preparing experimental materials.","Conducted independent experiments, including tissue clearing (CUBIC) and staining post-transparent samples under an applied electric field.","Played a key role in developing new non-toxic, organic transparency methods as part of the core research team."]
+      "highlights": [
+        "Assisted researchers in analyzing data for final project reports, debugging prototypes, and preparing experimental materials.",
+        "Conducted independent experiments, including tissue clearing (CUBIC) and staining post-transparent samples under an applied electric field.",
+        "Played a key role in developing new non-toxic, organic transparency methods as part of the core research team."
+      ]
     }
   ],
 
-  
   "publications": [
     {
       "name": "Patient-Adaptive and Learned MRI Data Undersampling Using Neighborhood Clustering",
@@ -82,7 +89,10 @@
       "url": "https://sites.google.com/view/duneswebinars",
       "startDate": "2024-05-01",
       "endDate": "Pres.",
-      "highlights": ["Organized and co-hosted a webinar series on Zoom, available on YouTube.","Aimed at bringing together meditation and consciousness researchers and students from academia and industry"]
+      "highlights": [
+        "Organized and co-hosted a webinar series on Zoom, available on YouTube.",
+        "Aimed at bringing together meditation and consciousness researchers and students from academia and industry"
+      ]
     }
   ],
   "projects": [
@@ -105,21 +115,18 @@
     {
       "name": "EEG-Based Classification",
       "summary": "This project uses EEG and machine learning to classify brain activity, enabling insights into cognitive states and mental health applications.",
-      "highlights": ["Classification", "Computational Neuroscience","EEG data Analysis"],
+      "highlights": ["Classification", "Computational Neuroscience", "EEG data Analysis"],
       "startDate": "2024-06-01",
       "endDate": "Pres."
       // "url": "https://example.com"
     }
-   
   ],
- 
+
   "skills": [
     {
       "name": "EEG Data Collection and Analysis, Medical Image Processing",
-      "icon": ["fa-solid fa-hashtag","fa-solid fa-hashtag"],
-      "keywords": [
-        "Python", "C++", "C"," Matlab", "SQL", "JavaScript"
-      ]
+      "icon": ["fa-solid fa-hashtag", "fa-solid fa-hashtag"],
+      "keywords": ["Python", "C++", "C", " Matlab", "SQL", "JavaScript"]
     }
   ],
   "languages": [
