@@ -1,6 +1,32 @@
 <div class="news">
   {% if page.latest_posts != blank %}
-    {% assign latest_posts_size = site.posts | size %}
+    {% comment %}
+      Filter out Chinese posts if an English version exists.
+      An English version is assumed to exist if a post with the same slug but without '-zh' exists.
+    {% endcomment %}
+    {% assign slugs_of_english_posts = '' | split: '' %}
+    {% for post in site.posts %}
+      {% assign current_slug_d = post.slug | downcase %}
+      {% unless current_slug_d contains '-zh' %}
+        {% assign slugs_of_english_posts = slugs_of_english_posts | push: current_slug_d %}
+      {% endunless %}
+    {% endfor %}
+
+    {% assign posts_to_show = '' | split: '' %}
+    {% for post in site.posts %}
+      {% assign current_slug_d = post.slug | downcase %}
+      {% if current_slug_d contains '-zh' %}
+        {% assign original_slug_d = current_slug_d | remove: '-zh' %}
+        {% unless slugs_of_english_posts contains original_slug_d %}
+          {% assign posts_to_show = posts_to_show | push: post %}
+        {% endunless %}
+      {% else %}
+        {% assign posts_to_show = posts_to_show | push: post %}
+      {% endif %}
+    {% endfor %}
+
+    {% assign latest_posts = posts_to_show %}
+    {% assign latest_posts_size = latest_posts | size %}
     <div
       class="table-responsive"
       {% if page.latest_posts.scrollable and latest_posts_size > 3 %}
@@ -8,7 +34,6 @@
       {% endif %}
     >
       <table class="table table-sm table-borderless">
-        {% assign latest_posts = site.posts %}
         {% if page.latest_posts.limit %}
           {% assign latest_posts_limit = page.latest_posts.limit %}
         {% else %}

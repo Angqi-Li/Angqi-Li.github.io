@@ -112,4 +112,4 @@ With a final cluster-p-value of 0.02, we can confidently say that the positive c
 
 "We found a significant positive cluster (p=0.02) indicating that meditation led to an increase in power. This effect was most prominent in the frontal an central channels and across the 5Hz to 8Hz frequency range."
 
-Crucially, we cannot pick a single point within that cluster (e.g., Cz, Frequency 7) and say it is significant. The test only gives us confidence in the cluster as a whole. This is the trade-off: we lose spatial/focal precision but gain a huge amount of statistical power and solve the multiple comparisons problem.
+Crucially, we cannot pick a single point within that cluster (e.g., Cz, 7Hz) and say it is significant. The test only gives us confidence in the cluster as a whole. This is the trade-off: we lose spatial/focal precision but gain a huge amount of statistical power and solve the multiple comparisons problem.
