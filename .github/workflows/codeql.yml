@@ -11,13 +11,11 @@
 #
 name: "CodeQL Advanced"
 
+# CodeQL disabled for this personal static site: it added no value and kept
+# erroring. Runs only when triggered manually now. Restore the push/pull_request/
+# schedule triggers below to re-enable automatic scanning.
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
-  schedule:
-    - cron: "45 4 * * 3"
+  workflow_dispatch:
 
 jobs:
   analyze:
