@@ -1,0 +1,56 @@
+name: Sync Google Scholar
+
+# Detects new publications on your Google Scholar profile and opens a pull
+# request that adds the BibTeX entry, a cover thumbnail, and a News announcement.
+# Review + merge the PR to publish (the existing deploy workflow runs on merge).
+
+on:
+  schedule:
+    - cron: "0 6 1 * *" # 06:00 UTC on the 1st of every month
+  workflow_dispatch: # adds a manual "Run workflow" button
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Setup Python 🐍
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies 🔧
+        run: pip install -r bin/requirements-scholar.txt
+
+      - name: Sync new publications 📚
+        env:
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+        run: python bin/sync_scholar.py --verbose
+
+      - name: Open pull request 🔀
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: scholar-sync/update
+          delete-branch: true
+          commit-message: "chore: sync new Google Scholar publications"
+          title: "Sync new Scholar publications"
+          body: |
+            Automated sync from Google Scholar.
+
+            This PR adds new BibTeX entries to `_bibliography/papers.bib`, cover
+            thumbnails under `assets/img/publication_preview/`, and News
+            announcements under `_news/`.
+
+            Please review (titles, authors, DOI, venue, and the auto-generated
+            cover images) before merging. Merging publishes the changes.
+          add-paths: |
+            _bibliography/papers.bib
+            _news/*.md
+            assets/img/publication_preview/*

@@ -1,0 +1,5 @@
+# Dependencies for bin/sync_scholar.py (Google Scholar -> publications + news sync).
+requests>=2.31
+rapidfuzz>=3.0
+PyMuPDF>=1.24   # PDF first-page rendering for cover thumbnails (pure-python, no poppler)
+matplotlib>=3.7 # placeholder cover when no open-access PDF is available
