@@ -43,6 +43,7 @@ SOCIALS_YML = REPO_ROOT / "_data" / "socials.yml"
 BIB_PATH = REPO_ROOT / "_bibliography" / "papers.bib"
 NEWS_DIR = REPO_ROOT / "_news"
 PREVIEW_DIR = REPO_ROOT / "assets" / "img" / "publication_preview"
+RESUME_JSON = REPO_ROOT / "assets" / "json" / "resume.json"
 
 SERPAPI_ENDPOINT = "https://serpapi.com/search.json"
 CROSSREF_ENDPOINT = "https://api.crossref.org/works"
@@ -442,6 +443,80 @@ def build_news(title: str, url: str, date: dt.date) -> str:
 
 
 # --------------------------------------------------------------------------- #
+# CV (assets/json/resume.json, JSON Resume schema)
+# --------------------------------------------------------------------------- #
+def authors_display(author_bibtex: str) -> str:
+    """Convert BibTeX 'Li, Angqi and Gautam, Siddhant' to 'Angqi Li, Siddhant Gautam'."""
+    names = []
+    for chunk in author_bibtex.split(" and "):
+        chunk = chunk.strip()
+        if "," in chunk:
+            family, given = (p.strip() for p in chunk.split(",", 1))
+            names.append(f"{given} {family}".strip())
+        elif chunk:
+            names.append(chunk)
+    return ", ".join(names)
+
+
+def cv_publications_span(text: str) -> Optional[tuple[int, int]]:
+    """Return (start, end) indices of the content *inside* the publications array
+    (between its '[' and ']'), or None if not found."""
+    m = re.search(r'"publications"\s*:\s*\[', text)
+    if not m:
+        return None
+    start = m.end()  # just after '['
+    depth = 1
+    i = start
+    while i < len(text) and depth > 0:
+        c = text[i]
+        if c == "[":
+            depth += 1
+        elif c == "]":
+            depth -= 1
+        i += 1
+    if depth != 0:
+        return None
+    return start, i - 1  # i-1 is the matching ']'
+
+
+def load_cv_pub_titles(text: str) -> set[str]:
+    span = cv_publications_span(text)
+    if not span:
+        return set()
+    inner = text[span[0]:span[1]]
+    return {normalize_title(m.group(1)) for m in re.finditer(r'"name"\s*:\s*"(.*?)"', inner)}
+
+
+def build_cv_entry(meta: dict) -> str:
+    """A JSON Resume publication object, indented to match resume.json (4 spaces)."""
+    import json
+
+    obj = {
+        "name": meta["title"],
+        "publisher": authors_display(meta["author"]),
+        "releaseDate": str(meta["year"]),
+        "url": meta["url"],
+    }
+    if meta.get("venue"):
+        obj["summary"] = meta["venue"]
+    body = json.dumps(obj, ensure_ascii=False, indent=2)
+    return "\n".join("    " + ln for ln in body.splitlines())
+
+
+def append_cv_publications(text: str, entries: list[str]) -> Optional[str]:
+    """Splice new publication objects in before the publications array's ']',
+    leaving the rest of the file (and its comments) byte-for-byte intact."""
+    span = cv_publications_span(text)
+    if not span or not entries:
+        return None
+    start, close = span
+    inner = text[start:close]
+    insert_at = start + len(inner.rstrip())  # right after the last existing '}'
+    block = "".join(",\n" + e for e in entries)
+    return text[:insert_at] + block + text[insert_at:]
+
+
+# --------------------------------------------------------------------------- #
 # main
 # --------------------------------------------------------------------------- #
 def resolve_metadata(article: dict, verbose: bool, email: str) -> dict:
@@ -551,68 +626,96 @@ def main() -> int:
     log(f"Scholar author id: {author_id}")
 
     bib_text = BIB_PATH.read_text(encoding="utf-8") if BIB_PATH.exists() else ""
-    existing_titles, existing_keys = load_existing(bib_text)
-    log(f"Existing publications in papers.bib: {len(existing_titles)}")
+    bib_titles, existing_keys = load_existing(bib_text)
+    log(f"Existing publications in papers.bib: {len(bib_titles)}")
+
+    resume_text = RESUME_JSON.read_text(encoding="utf-8") if RESUME_JSON.exists() else ""
+    cv_titles = load_cv_pub_titles(resume_text)
+    log(f"Existing publications in CV (resume.json): {len(cv_titles)}")
 
     articles = fetch_scholar_articles(author_id, api_key, args.verbose)
     log(f"Articles on Scholar profile: {len(articles)}")
 
-    new_articles = [a for a in articles if a.get("title") and not title_is_known(a["title"], existing_titles)]
-    if not new_articles:
-        log("No new publications. Nothing to do. ✅")
+    # An article is a candidate if it is missing from the bib OR the CV (the two
+    # are deduped independently so e.g. a paper already in the bib can still be
+    # back-filled into the CV).
+    candidates = [
+        a for a in articles
+        if a.get("title") and (
+            not title_is_known(a["title"], bib_titles) or not title_is_known(a["title"], cv_titles)
+        )
+    ]
+    if not candidates:
+        log("No new publications for bib or CV. Nothing to do. ✅")
         return 0
-    log(f"New publications to add: {len(new_articles)}")
+    log(f"Candidate publications: {len(candidates)}")
 
     used_keys = set(existing_keys)
     news_index = next_news_index()
     today = dt.date.today()
-    new_entries: list[str] = []
+    new_bib_entries: list[str] = []
+    new_cv_entries: list[str] = []
 
-    for article in new_articles:
-        log(f"\n• {article.get('title')}")
+    for article in candidates:
+        new_to_bib = not title_is_known(article["title"], bib_titles)
+        new_to_cv = not title_is_known(article["title"], cv_titles)
+        log(f"\n• {article.get('title')}  [bib={'new' if new_to_bib else 'have'}, cv={'new' if new_to_cv else 'have'}]")
         meta = resolve_metadata(article, args.verbose, email)
-        key = make_key(meta["author"], str(meta["year"]), meta["title"], used_keys)
-        log(f"  key={key}  doi={meta.get('doi')}  venue={meta.get('venue')}")
 
-        # cover image
-        preview_name = f"{key}.png"
-        dest = PREVIEW_DIR / preview_name
-        if args.dry_run:
-            cands = meta.get("pdf_candidates") or []
-            log(f"  [dry-run] would render cover from {cands or 'placeholder'} -> {preview_name}")
-        else:
-            ok = False
-            for pdf_url in meta.get("pdf_candidates", []):
-                if render_pdf_cover(pdf_url, dest, args.verbose):
-                    ok = True
-                    break
-            if not ok:
-                ok = render_placeholder_cover(meta["title"], dest, args.verbose)
-            if not ok:
-                preview_name = None  # entry without a preview rather than a broken link
+        if new_to_bib:
+            key = make_key(meta["author"], str(meta["year"]), meta["title"], used_keys)
+            log(f"  bib key={key}  doi={meta.get('doi')}  venue={meta.get('venue')}")
 
-        entry = build_entry(article, key, meta, preview_name)
-        new_entries.append(entry)
-        log("  bib entry:\n" + "\n".join("    " + ln for ln in entry.splitlines()))
+            # cover image
+            preview_name = f"{key}.png"
+            dest = PREVIEW_DIR / preview_name
+            if args.dry_run:
+                cands = meta.get("pdf_candidates") or []
+                log(f"  [dry-run] would render cover from {cands or 'placeholder'} -> {preview_name}")
+            else:
+                ok = False
+                for pdf_url in meta.get("pdf_candidates", []):
+                    if render_pdf_cover(pdf_url, dest, args.verbose):
+                        ok = True
+                        break
+                if not ok:
+                    ok = render_placeholder_cover(meta["title"], dest, args.verbose)
+                if not ok:
+                    preview_name = None  # entry without a preview rather than a broken link
 
-        # news file
-        news_name = f"announcement_{news_index}.md"
-        news_body = build_news(meta["title"], meta["url"], today)
-        news_index += 1
-        if args.dry_run:
-            log(f"  [dry-run] would write _news/{news_name}")
-        else:
-            (NEWS_DIR / news_name).write_text(news_body, encoding="utf-8")
-            log(f"  wrote _news/{news_name}")
+            new_bib_entries.append(build_entry(article, key, meta, preview_name))
+
+            # news file (only for genuinely new publications)
+            news_name = f"announcement_{news_index}.md"
+            news_body = build_news(meta["title"], meta["url"], today)
+            news_index += 1
+            if args.dry_run:
+                log(f"  [dry-run] would write _news/{news_name}")
+            else:
+                (NEWS_DIR / news_name).write_text(news_body, encoding="utf-8")
+                log(f"  wrote _news/{news_name}")
+
+        if new_to_cv:
+            new_cv_entries.append(build_cv_entry(meta))
+            log("  + CV publication entry")
 
     if args.dry_run:
-        log("\n[dry-run] no files written.")
+        log(f"\n[dry-run] would add {len(new_bib_entries)} bib + {len(new_cv_entries)} CV entries. No files written.")
         return 0
 
-    addition = "\n\n" + "\n\n".join(new_entries) + "\n"
-    with BIB_PATH.open("a", encoding="utf-8") as fh:
-        fh.write(addition)
-    log(f"\nAppended {len(new_entries)} entr{'y' if len(new_entries) == 1 else 'ies'} to papers.bib ✅")
+    if new_bib_entries:
+        with BIB_PATH.open("a", encoding="utf-8") as fh:
+            fh.write("\n\n" + "\n\n".join(new_bib_entries) + "\n")
+        log(f"\nAppended {len(new_bib_entries)} entr{'y' if len(new_bib_entries) == 1 else 'ies'} to papers.bib ✅")
+
+    if new_cv_entries:
+        updated = append_cv_publications(resume_text, new_cv_entries)
+        if updated:
+            RESUME_JSON.write_text(updated, encoding="utf-8")
+            log(f"Appended {len(new_cv_entries)} publication(s) to CV (resume.json) ✅")
+        else:
+            log("⚠️  Could not locate the publications array in resume.json; CV not updated.")
+
     return 0
 
 

@@ -54,3 +54,4 @@ jobs:
             _bibliography/papers.bib
             _news/*.md
             assets/img/publication_preview/*
+            assets/json/resume.json
