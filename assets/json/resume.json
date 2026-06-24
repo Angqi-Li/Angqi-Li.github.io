@@ -78,6 +78,34 @@
       "publisher": "Angqi Li, Pratham Pradhan, Annie Wozniak, Krishna Ika, Barry H. Cohen, Saiprasad Ravishankar",
       "releaseDate": "2023",
       "summary": "Neuroscience 2023 Washington, D.C."
+    },
+    {
+      "name": "L-FAME: Longitudinal Focused Attention Meditation EEG Dataset and Benchmark",
+      "publisher": "Angqi Li, Ab Basit Rafi Syed, Hamzeh Alzweri, Taosheng Liu, Barry H. Cohen, Saiprasad Ravishankar",
+      "releaseDate": "2026",
+      "url": "https://arxiv.org/abs/2605.22893",
+      "summary": "arXiv preprint arXiv:2605.22893"
+    },
+    {
+      "name": "Not all mantra meditations are equal: Emergence of divergent alpha oscillatory dynamics across mantras",
+      "publisher": "Angqi Li, Julio Rodriguez-Larios, Mengsen Zhang, Taosheng Liu, Barry H. Cohen, Saiprasad Ravishankar",
+      "releaseDate": "2026",
+      "url": "https://doi.org/10.64898/2026.02.26.707862",
+      "summary": "bioRxiv"
+    },
+    {
+      "name": "Scan-Adaptive Dynamic MRI Undersampling Using a Dictionary of Efficiently Learned Patterns",
+      "publisher": "Siddhant Gautam, Angqi Li, Prachi P. Agarwal, Anil K. Attili, Jeffrey A. Fessler, Nicole Seiberlich, Saiprasad Ravishankar",
+      "releaseDate": "2026",
+      "url": "https://arxiv.org/abs/2602.13984",
+      "summary": "arXiv preprint arXiv:2602.13984"
+    },
+    {
+      "name": "Scan-Adaptive MRI Undersampling Using Neighbor-Based Optimization (SUNO)",
+      "publisher": "Siddhant Gautam, Angqi Li, Nicole Seiberlich, Jeffrey A. Fessler, Saiprasad Ravishankar",
+      "releaseDate": "2026",
+      "url": "https://doi.org/10.1109/tci.2026.3653330",
+      "summary": "IEEE Transactions on Computational Imaging"
     }
   ],
 
