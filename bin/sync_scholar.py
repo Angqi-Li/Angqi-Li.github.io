@@ -213,6 +213,27 @@ def arxiv_lookup(title: str, verbose: bool) -> Optional[str]:
     return None
 
 
+def arxiv_metadata(arxiv_id: str, verbose: bool) -> dict:
+    """Fetch canonical title + full author list for an arXiv id."""
+    try:
+        resp = requests.get(ARXIV_ENDPOINT, params={"id_list": arxiv_id, "max_results": 1}, timeout=HTTP_TIMEOUT)
+        resp.raise_for_status()
+    except Exception as exc:
+        vlog(verbose, f"    arxiv metadata fetch failed: {exc}")
+        return {}
+    entry = re.search(r"<entry>(.*?)</entry>", resp.text, re.DOTALL)
+    if not entry:
+        return {}
+    body = entry.group(1)
+    tmatch = re.search(r"<title>(.*?)</title>", body, re.DOTALL)
+    names = [re.sub(r"\s+", " ", n).strip() for n in re.findall(r"<name>(.*?)</name>", body, re.DOTALL)]
+    out = {"authors": names}
+    if tmatch:
+        out["title"] = re.sub(r"\s+", " ", tmatch.group(1)).strip()
+    vlog(verbose, f"    arxiv metadata: {len(names)} authors")
+    return out
+
+
 def unpaywall_pdf_url(doi: str, email: str, verbose: bool) -> Optional[str]:
     try:
         resp = requests.get(f"{UNPAYWALL_ENDPOINT}{doi}", params={"email": email}, timeout=HTTP_TIMEOUT)
@@ -249,10 +270,14 @@ def authors_from_crossref(item: dict) -> Optional[str]:
 
 
 def authors_from_string(authors: str) -> str:
-    """Convert SerpAPI's 'S Gautam, A Li, S Ravishankar' to BibTeX form."""
+    """Convert SerpAPI's 'S Gautam, A Li, S Ravishankar' to BibTeX form.
+
+    SerpAPI truncates long author lists with a trailing '...'; those markers are
+    dropped rather than emitted as a literal author."""
     out = []
     for chunk in authors.split(","):
-        tokens = chunk.strip().split()
+        chunk = chunk.strip().strip(".…").strip()
+        tokens = chunk.split()
         if not tokens:
             continue
         if len(tokens) == 1:
@@ -262,6 +287,28 @@ def authors_from_string(authors: str) -> str:
             given = " ".join(tokens[:-1])
             out.append(f"{family}, {given}")
     return " and ".join(out)
+
+
+def authors_from_arxiv(names: list[str]) -> Optional[str]:
+    """Convert arXiv 'Angqi Li' style names to BibTeX 'Li, Angqi' form."""
+    parts = []
+    for name in names:
+        tokens = name.strip().split()
+        if not tokens:
+            continue
+        if len(tokens) == 1:
+            parts.append(tokens[0])
+        else:
+            parts.append(f"{tokens[-1]}, {' '.join(tokens[:-1])}")
+    return " and ".join(parts) if parts else None
+
+
+def extract_arxiv_id(text: str) -> Optional[str]:
+    """Pull an arXiv id (e.g. 2501.09799) out of a free-text string."""
+    if not text:
+        return None
+    m = re.search(r"arxiv[:\s]*?(\d{4}\.\d{4,5})", text, re.IGNORECASE)
+    return m.group(1) if m else None
 
 
 def first_author_family(author_bibtex: str) -> str:
@@ -403,14 +450,32 @@ def resolve_metadata(article: dict, verbose: bool, email: str) -> dict:
     serp_year = (article.get("year") or "").strip()
     scholar_link = article.get("link") or ""
 
+    publication = article.get("publication") or ""
+
     cr = crossref_lookup(title, serp_year, verbose)
-    arxiv_id = arxiv_lookup(title, verbose)
+    doi = cr.get("DOI") if cr else None
 
-    # title (prefer crossref's canonical capitalization when confident)
+    # arXiv id: prefer the one SerpAPI already reports in the publication string
+    # (reliable for brand-new papers), else fall back to a title search.
+    arxiv_id = extract_arxiv_id(publication) or extract_arxiv_id(scholar_link)
+    if not arxiv_id and not doi:
+        arxiv_id = arxiv_lookup(title, verbose)
+
+    # arXiv metadata gives the full author list + canonical title when Crossref
+    # has no (good) match — much better than SerpAPI's abbreviated/truncated form.
+    arxiv_meta = arxiv_metadata(arxiv_id, verbose) if (arxiv_id and not cr) else {}
+
+    # title (prefer canonical capitalization from Crossref, then arXiv)
     cr_title = (cr.get("title") or [None])[0] if cr else None
+    title_out = cr_title or arxiv_meta.get("title") or title
 
-    # authors
-    author = (cr and authors_from_crossref(cr)) or authors_from_string(article.get("authors", "")) or "Unknown"
+    # authors (Crossref > arXiv > SerpAPI string)
+    author = (
+        (cr and authors_from_crossref(cr))
+        or authors_from_arxiv(arxiv_meta.get("authors", []))
+        or authors_from_string(article.get("authors", ""))
+        or "Unknown"
+    )
 
     # year
     year = serp_year
@@ -423,26 +488,16 @@ def resolve_metadata(article: dict, verbose: bool, email: str) -> dict:
     # venue / entry type
     venue = (cr.get("container-title") or [None])[0] if cr else None
     cr_type = (cr or {}).get("type", "")
-    if "proceedings" in cr_type:
-        entry_type = "inproceedings"
-    else:
-        entry_type = "article"
+    entry_type = "inproceedings" if "proceedings" in cr_type else "article"
     if not venue:
-        venue = (article.get("publication") or "").split(",")[0].strip() or None
-    if arxiv_id and not (cr and cr.get("DOI")):
+        venue = publication.split(",")[0].strip() or None
+    if arxiv_id and not doi:
         venue = f"arXiv preprint arXiv:{arxiv_id}"
         entry_type = "article"
 
-    doi = cr.get("DOI") if cr else None
     pages = cr.get("page") if cr else None
 
-    # pdf + url
-    pdf_url = None
-    if arxiv_id:
-        pdf_url = f"https://arxiv.org/pdf/{arxiv_id}"
-    elif doi:
-        pdf_url = unpaywall_pdf_url(doi, email, verbose)
-
+    # canonical link (doi > arxiv abs > scholar as last resort)
     if doi:
         url = f"https://doi.org/{doi}"
     elif arxiv_id:
@@ -450,17 +505,34 @@ def resolve_metadata(article: dict, verbose: bool, email: str) -> dict:
     else:
         url = scholar_link
 
+    # ordered list of PDF urls to try when rendering the cover thumbnail
+    pdf_candidates: list[str] = []
+    if arxiv_id:
+        pdf_candidates.append(f"https://arxiv.org/pdf/{arxiv_id}")
+    if doi:
+        oa = unpaywall_pdf_url(doi, email, verbose)
+        if oa:
+            pdf_candidates.append(oa)
+        # bioRxiv / medRxiv expose a predictable full-text PDF url
+        if cr and any("rxiv" in (p or "").lower() for p in (cr.get("container-title") or []) + [cr.get("publisher", "")]):
+            pdf_candidates.append(f"https://www.biorxiv.org/content/{doi}v1.full.pdf")
+        for link in (cr.get("link") or []):
+            if link.get("content-type") == "application/pdf" and link.get("URL"):
+                pdf_candidates.append(link["URL"])
+
+    pdf_link = pdf_candidates[0] if pdf_candidates else url
+
     return {
-        "title": cr_title or title,
+        "title": title_out,
         "author": author,
         "venue": venue,
         "entry_type": entry_type,
         "year": year or "n.d.",
         "doi": doi,
         "pages": pages,
-        "pdf": pdf_url or url,
+        "pdf": pdf_link,
         "url": url,
-        "pdf_for_cover": pdf_url,
+        "pdf_candidates": pdf_candidates,
     }
 
 
@@ -506,11 +578,14 @@ def main() -> int:
         preview_name = f"{key}.png"
         dest = PREVIEW_DIR / preview_name
         if args.dry_run:
-            log(f"  [dry-run] would render cover -> assets/img/publication_preview/{preview_name}")
+            cands = meta.get("pdf_candidates") or []
+            log(f"  [dry-run] would render cover from {cands or 'placeholder'} -> {preview_name}")
         else:
             ok = False
-            if meta.get("pdf_for_cover"):
-                ok = render_pdf_cover(meta["pdf_for_cover"], dest, args.verbose)
+            for pdf_url in meta.get("pdf_candidates", []):
+                if render_pdf_cover(pdf_url, dest, args.verbose):
+                    ok = True
+                    break
             if not ok:
                 ok = render_placeholder_cover(meta["title"], dest, args.verbose)
             if not ok:
